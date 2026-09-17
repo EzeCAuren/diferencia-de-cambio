@@ -22,10 +22,32 @@ COLUMNAS_MENSUALES = ["F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q"
 COLUMNA_TOTAL = "R"
 
 # ==========================================
-# FILAS DE LA HOJA ANÁLISIS
+# DETECCIÓN AUTOMÁTICA DE FILAS
 # ==========================================
 
+# Palabras clave para detectar dónde empiezan las cuentas (plural = tabla de análisis)
+MARCADOR_INICIO_CUENTAS = ["CUENTAS"]
+
+# Fila de fallback si no se detecta automáticamente
 FILA_INICIO_CUENTAS = 9
+
+# Fila de encabezado de la tabla de resultados (singular = tabla resumen)
+MARCADOR_TABLA_RESULTADOS = ["CUENTA"]
+
+# Filas que se ignoran al leer cuentas
+FILAS_A_IGNORAR = ["TOTAL", "TOTAL ACTIVO", "TOTAL PASIVO"]
+
+# Mapeo de etiquetas de fila a claves internas
+# Cada entrada: (clave_interna, función_de_detección)
+ETIQUETAS_FILAS = {
+    "TOTAL_ACTIVO": lambda t: t == "TOTAL ACTIVO",
+    "TOTAL_PASIVO": lambda t: t == "TOTAL PASIVO",
+    "POSICION_NETA_UY": lambda t: t.startswith("POSICION NETA") and "UY" in t,
+    "POSICION_NETA_USD": lambda t: t.startswith("POSICION NETA") and "USD" in t,
+    "POSICION_NETA_MC_PROM": lambda t: t.startswith("POSICION NETA") and "MC" in t,
+    "TC": lambda t: t.startswith("TC"),
+    "DIFERENCIA": lambda t: "DIFERENCIA" in t and "CAMBIO" in t,
+}
 
 # ==========================================
 # COLUMNAS DE LA HOJA MAYORES
@@ -41,6 +63,19 @@ COLUMNA_MAYOR_DEBE_USD = "Debe USD"
 COLUMNA_MAYOR_HABER_USD = "Haber USD"
 COLUMNA_MAYOR_NETO_USD = "Neto USD"
 COLUMNA_MAYOR_SALDO_USD = "Saldo USD"
+
+# Palabras clave para detectar columnas en Mayores
+PALABRAS_CLAVE_MAYORES = {
+    "Cuenta": ["CUENTA", "CTA", "CODIGO", "COD", "NRO CUENTA"],
+    "Fecha": ["FECHA", "DATE", "FCH"],
+    "Debe $": ["DEBE", "DEBITO", "DEB"],
+    "Haber $": ["HABER", "CREDITO", "HAB"],
+    "Saldo $": lambda v: "SALDO" in v and "$" in v and "USD" not in v,
+    "Debe USD": lambda v: "DEBE" in v and "USD" in v,
+    "Haber USD": lambda v: "HABER" in v and "USD" in v,
+    "Saldo USD": lambda v: "SALDO" in v and "USD" in v,
+    "Concepto": ["CONCEPTO", "DETALLE", "DESCRIPCION"],
+}
 
 # ==========================================
 # CONFIGURACIÓN DE MONEDAS
@@ -62,7 +97,7 @@ MONEDA_BASE_POR_DEFECTO = "USD"
 # CONFIGURACIÓN DE ANÁLISIS
 # ==========================================
 
-# Columnas de la tabla dinámica
+# Nombres de meses para tabla dinámica
 MESES = ["Jul", "Ago", "Sep", "Oct", "Nov", "Dic", "Ene", "Feb", "Mar", "Abr", "May", "Jun"]
 
 # ==========================================

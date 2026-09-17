@@ -7,7 +7,10 @@ from config import (
     COLUMNA_CUENTA,
     COLUMNAS_MENSUALES,
     COLUMNA_TOTAL,
-    FILA_INICIO_CUENTAS
+    FILA_INICIO_CUENTAS,
+    MARCADOR_INICIO_CUENTAS,
+    FILAS_A_IGNORAR,
+    ETIQUETAS_FILAS
 )
 
 
@@ -35,13 +38,11 @@ class AnalysisCompleter:
         Returns:
             int: Número de fila donde empiezan los datos
         """
-        # Buscar la fila donde empiezan las cuentas a analizar
-        palabras_clave_inicio = ["CUENTAS"]
         
         for fila in range(1, 50):
             try:
                 valor = self.hoja[f"{COLUMNA_CUENTA}{fila}"].value
-                if valor and str(valor).strip().upper() in palabras_clave_inicio:
+                if valor and str(valor).strip().upper() in MARCADOR_INICIO_CUENTAS:
                     return fila + 1  # La siguiente fila tiene los datos
             except Exception:
                 continue
@@ -71,7 +72,7 @@ class AnalysisCompleter:
                 cuenta_str = str(valor_cuenta).strip()
                 
                 # Ignorar filas de totales
-                if cuenta_str.upper() in ["TOTAL", "TOTAL ACTIVO", "TOTAL PASIVO"]:
+                if cuenta_str.upper() in FILAS_A_IGNORAR:
                     fila += 1
                     continue
                 
@@ -146,6 +147,7 @@ class AnalysisCompleter:
     def _detectar_filas_totales(self):
         """
         Detecta las filas de TOTAL ACTIVO, TOTAL PASIVO, etc.
+        Usa las funciones de detección definidas en ETIQUETAS_FILAS.
         
         Returns:
             dict: {tipo_fila: numero_fila}
@@ -160,20 +162,11 @@ class AnalysisCompleter:
                     # Quitar tildes para comparar
                     valor_normalizado = valor_upper.replace("Ó", "O").replace("Ú", "U")
                     
-                    if valor_normalizado == "TOTAL ACTIVO":
-                        filas["TOTAL_ACTIVO"] = fila
-                    elif valor_normalizado == "TOTAL PASIVO":
-                        filas["TOTAL_PASIVO"] = fila
-                    elif valor_normalizado.startswith("POSICION NETA") and "UY" in valor_normalizado:
-                        filas["POSICION_NETA_UY"] = fila
-                    elif valor_normalizado.startswith("TC"):
-                        filas["TC"] = fila
-                    elif valor_normalizado.startswith("POSICION NETA") and "USD" in valor_normalizado:
-                        filas["POSICION_NETA_USD"] = fila
-                    elif valor_normalizado.startswith("POSICION NETA") and "MC" in valor_normalizado:
-                        filas["POSICION_NETA_MC_PROM"] = fila
-                    elif "DIFERENCIA" in valor_normalizado and "CAMBIO" in valor_normalizado:
-                        filas["DIFERENCIA"] = fila
+                    # Usar las funciones de detección de config
+                    for clave, detector in ETIQUETAS_FILAS.items():
+                        if detector(valor_normalizado):
+                            filas[clave] = fila
+                            break
             except Exception:
                 continue
         

@@ -12,6 +12,9 @@ from config import (
     HOJA_CONFIG_MONEDAS,
     COLUMNA_CUENTA,
     FILA_INICIO_CUENTAS,
+    MARCADOR_INICIO_CUENTAS,
+    FILAS_A_IGNORAR,
+    PALABRAS_CLAVE_MAYORES,
     MONEDAS_BCU,
     MONEDA_BASE_POR_DEFECTO
 )
@@ -53,13 +56,12 @@ class ExcelReader:
         # Buscar la fila donde empiezan las cuentas a analizar
         # IMPORTANTE: Buscar "Cuentas" (plural), NO "Cuenta" (singular)
         # Porque "Cuenta" es el encabezado de la tabla de resultados
-        palabras_clave_inicio = ["CUENTAS"]
         
         fila_inicio = None
         for fila in range(1, 50):  # Buscar en las primeras 50 filas
             try:
                 valor = hoja[f"{COLUMNA_CUENTA}{fila}"].value
-                if valor and str(valor).strip().upper() in palabras_clave_inicio:
+                if valor and str(valor).strip().upper() in MARCADOR_INICIO_CUENTAS:
                     fila_inicio = fila + 1  # La siguiente fila tiene los datos
                     break
             except Exception:
@@ -86,7 +88,7 @@ class ExcelReader:
                 cuenta_str = str(valor).strip()
                 
                 # Ignorar filas de totales y otras filas especiales
-                if cuenta_str.upper() in ["TOTAL", "TOTAL ACTIVO", "TOTAL PASIVO", ""]:
+                if cuenta_str.upper() in FILAS_A_IGNORAR:
                     fila += 1
                     continue
 
@@ -119,10 +121,6 @@ class ExcelReader:
             raise Exception(f"No se encontró la hoja '{HOJA_MAYORES}'")
 
         # Buscar la fila de encabezados buscando palabras clave
-        palabras_clave_cuenta = ["CUENTA", "CTA", "CODIGO", "COD", "NRO CUENTA"]
-        palabras_clave_fecha = ["FECHA", "DATE", "FCH"]
-        palabras_clave_debe = ["DEBE", "DEBITO", "DEB"]
-        palabras_clave_haber = ["HABER", "CREDITO", "HAB"]
         
         fila_encabezados = None
         mapping_columnas = {}  # {nombre_estandar: indice_columna}
@@ -141,25 +139,19 @@ class ExcelReader:
                 
                 # Buscar si esta fila contiene encabezados
                 for idx, valor in enumerate(valores_fila):
-                    if any(palabra in valor for palabra in palabras_clave_cuenta):
-                        fila_encabezados = fila
-                        mapping_columnas["Cuenta"] = idx
-                    elif any(palabra in valor for palabra in palabras_clave_fecha):
-                        mapping_columnas["Fecha"] = idx
-                    elif any(palabra in valor for palabra in palabras_clave_debe):
-                        mapping_columnas["Debe $"] = idx
-                    elif any(palabra in valor for palabra in palabras_clave_haber):
-                        mapping_columnas["Haber $"] = idx
-                    elif "SALDO" in valor and "$" in valor and "USD" not in valor:
-                        mapping_columnas["Saldo $"] = idx
-                    elif "DEBE" in valor and "USD" in valor:
-                        mapping_columnas["Debe USD"] = idx
-                    elif "HABER" in valor and "USD" in valor:
-                        mapping_columnas["Haber USD"] = idx
-                    elif "SALDO" in valor and "USD" in valor:
-                        mapping_columnas["Saldo USD"] = idx
-                    elif "CONCEPTO" in valor or "DETALLE" in valor or "DESCRIPCION" in valor:
-                        mapping_columnas["Concepto"] = idx
+                    for nombre_col, detector in PALABRAS_CLAVE_MAYORES.items():
+                        if callable(detector):
+                            # Función lambda para匹配 complejo
+                            if detector(valor):
+                                mapping_columnas[nombre_col] = idx
+                                if nombre_col in ("Cuenta", "Fecha"):
+                                    fila_encabezados = fila
+                        elif isinstance(detector, list):
+                            # Lista de palabras clave
+                            if any(palabra in valor for palabra in detector):
+                                mapping_columnas[nombre_col] = idx
+                                if nombre_col in ("Cuenta", "Fecha"):
+                                    fila_encabezados = fila
                 
                 # Si encontramos al menos cuenta y fecha, es válido
                 if "Cuenta" in mapping_columnas and "Fecha" in mapping_columnas:
