@@ -141,7 +141,7 @@ class ExcelReader:
                 for idx, valor in enumerate(valores_fila):
                     for nombre_col, detector in PALABRAS_CLAVE_MAYORES.items():
                         if callable(detector):
-                            # Función lambda para匹配 complejo
+                            # Función lambda para匹配 complejo (detección compleja)
                             if detector(valor):
                                 mapping_columnas[nombre_col] = idx
                                 if nombre_col in ("Cuenta", "Fecha"):
@@ -270,11 +270,20 @@ class ExcelReader:
                 simbolo = hoja[f"C{fila}"].value
                 moneda_base = hoja[f"D{fila}"].value
 
+                # Normalizar tildes para comparar
+                moneda_base_upper = str(moneda_base).strip().upper() if moneda_base else ""
+                moneda_base_normalizado = (
+                    moneda_base_upper
+                    .replace("Í", "I").replace("Ó", "O")
+                    .replace("Ú", "U").replace("Á", "A")
+                    .replace("É", "E")
+                )
+                
                 config.append({
                     "moneda": str(moneda).strip(),
                     "codigo_bcu": int(codigo_bcu) if codigo_bcu else MONEDAS_BCU.get(str(moneda).strip(), 2225),
                     "simbolo": str(simbolo).strip() if simbolo else str(moneda).strip(),
-                    "moneda_base": str(moneda_base).strip().upper() == "SÍ" if moneda_base else False
+                    "moneda_base": moneda_base_normalizado == "SI"
                 })
 
                 fila += 1
@@ -317,6 +326,28 @@ class ExcelReader:
                 "cliente": "",
                 "fecha_auditoria": ""
             }
+
+    def obtener_saldo_empresa_usd(self):
+        """
+        Obtiene el saldo de la empresa en USD desde la hoja de Análisis.
+        
+        Busca en la celda B3 (debajo del nombre del cliente, arriba de fecha).
+        Si no encuentra o está vacío, retorna 0.
+        
+        Returns:
+            float: Saldo de la empresa en USD
+        """
+        try:
+            hoja = self.wb.sheets[HOJA_ANALISIS]
+            valor = hoja["B3"].value
+            
+            if valor is None or str(valor).strip() == "":
+                return 0.0
+            
+            return float(valor)
+            
+        except Exception:
+            return 0.0
 
     def existe_hoja(self, nombre_hoja):
         """

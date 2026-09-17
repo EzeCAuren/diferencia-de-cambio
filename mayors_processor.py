@@ -48,12 +48,39 @@ class MayorsProcessor:
         
         return MayorsProcessor(df_filtrado)
 
+    @staticmethod
+    def _es_cuenta_pasivo(cuenta):
+        """
+        Determina si una cuenta es de pasivo (2xxx) o activo (1xxx+).
+        
+        Regla contable estándar:
+        - Cuentas 1xxx: Activo → movimiento = Debe - Haber
+        - Cuentas 2xxx: Pasivo → movimiento = Haber - Debe
+        - Otras: se trata como activo por defecto
+        
+        Args:
+            cuenta: Código de cuenta (string)
+            
+        Returns:
+            bool: True si es pasivo, False si es activo
+        """
+        cuenta_str = str(cuenta).strip()
+        # Tomar solo dígitos antes del punto (ej: "21100.01" → "21100")
+        cuenta_digitos = cuenta_str.split('.')[0]
+        if cuenta_digitos and cuenta_digitos[0] == '2':
+            return True
+        return False
+
     def acumular_saldos_mensuales(self):
         """
         Acumula saldos mes a mes para cada cuenta.
         
+        Aplica la fórmula contable correcta según tipo de cuenta:
+        - Activo (1xxx): movimiento = Debe - Haber
+        - Pasivo (2xxx): movimiento = Haber - Debe
+        
         Returns:
-            dict: Diccionario {cuenta: {(mes, anio): saldo_acumulado}}
+            dict: Diccionario {cuenta: {Periodo: saldo_acumulado}}
         """
         if self.df_mayores.empty:
             return {}
@@ -79,6 +106,9 @@ class MayorsProcessor:
             # Ordenar por fecha
             df_cuenta = df_cuenta.sort_values(COLUMNA_MAYOR_FECHA)
             
+            # Determinar tipo de cuenta
+            es_pasivo = self._es_cuenta_pasivo(cuenta)
+            
             # Acumular saldos
             saldo_acumulado = 0
             
@@ -94,9 +124,11 @@ class MayorsProcessor:
                 debe = 0 if pd.isna(debe_val) else float(debe_val)
                 haber = 0 if pd.isna(haber_val) else float(haber_val)
                 
-                # El saldo es Debe - Haber (para cuentas de activo)
-                # Nota: Esto puede variar según el tipo de cuenta
-                movimiento = debe - haber
+                # Fórmula según tipo de cuenta
+                if es_pasivo:
+                    movimiento = haber - debe
+                else:
+                    movimiento = debe - haber
                 
                 saldo_acumulado += movimiento
                 saldos_acumulados[cuenta][anio_mes] = saldo_acumulado

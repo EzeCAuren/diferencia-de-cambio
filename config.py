@@ -98,6 +98,7 @@ MONEDA_BASE_POR_DEFECTO = "USD"
 # ==========================================
 
 # Nombres de meses para tabla dinámica
+# Año fiscal: Jul-Jun (período de auditoría estándar en Uruguay)
 MESES = ["Jul", "Ago", "Sep", "Oct", "Nov", "Dic", "Ene", "Feb", "Mar", "Abr", "May", "Jun"]
 
 # ==========================================

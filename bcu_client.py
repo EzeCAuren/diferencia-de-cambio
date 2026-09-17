@@ -76,9 +76,11 @@ def _parse_xml_rates(xml_text: str, moneda_id: int) -> list[ExchangeRate]:
                     continue
                 fecha = datetime.strptime(child.text, "%Y-%m-%d").date()
             elif tag == "TCC":
-                compra = float(child.text)
+                if child.text:
+                    compra = float(child.text)
             elif tag == "TCV":
-                venta = float(child.text)
+                if child.text:
+                    venta = float(child.text)
 
         if fecha is not None and compra is not None and venta is not None:
             rates.append(ExchangeRate(

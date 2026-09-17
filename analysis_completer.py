@@ -160,7 +160,12 @@ class AnalysisCompleter:
                 if valor:
                     valor_upper = str(valor).strip().upper()
                     # Quitar tildes para comparar
-                    valor_normalizado = valor_upper.replace("Ó", "O").replace("Ú", "U")
+                    valor_normalizado = (
+                        valor_upper
+                        .replace("Ó", "O").replace("Ú", "U")
+                        .replace("Á", "A").replace("É", "E")
+                        .replace("Í", "I")
+                    )
                     
                     # Usar las funciones de detección de config
                     for clave, detector in ETIQUETAS_FILAS.items():

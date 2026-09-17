@@ -127,8 +127,9 @@ def main():
         # Crear completador
         completer = AnalysisCompleter(reader.wb)
         
-        # Obtener saldo de la empresa (de la fila de totales o parámetro)
-        saldo_empresa_usd = 0  # TODO: Obtener de la hoja si está disponible
+        # Obtener saldo de la empresa desde la hoja de Análisis
+        saldo_empresa_usd = reader.obtener_saldo_empresa_usd()
+        print(f"  Saldo empresa USD: {saldo_empresa_usd}")
         
         # Completar todos los cálculos
         completer.completar_todos_los_calculos(
